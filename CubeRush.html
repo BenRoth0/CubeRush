@@ -4,211 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cube Rush - Speed Matching Challenge</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            padding: 20px;
-        }
-
-        .game-container {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            text-align: center;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            max-width: 400px;
-            width: 100%;
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            background: linear-gradient(45deg, #ff6b6b, #ffd93d, #6bcf7f, #4ecdc4);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: glow 2s ease-in-out infinite alternate;
-        }
-
-        @keyframes glow {
-            from { filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3)); }
-            to { filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.6)); }
-        }
-
-        .subtitle {
-            font-size: 1rem;
-            margin-bottom: 30px;
-            opacity: 0.9;
-        }
-
-        .cube-pattern {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 4px;
-            max-width: 200px;
-            margin: 0 auto 30px;
-            background: rgba(0, 0, 0, 0.2);
-            padding: 15px;
-            border-radius: 15px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        }
-
-        .cube-square {
-            aspect-ratio: 1;
-            border-radius: 8px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            transition: all 0.3s ease;
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .cube-square.animate {
-            transform: scale(1.1);
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
-        }
-
-        .timer {
-            font-size: 3rem;
-            font-weight: bold;
-            margin: 20px 0;
-            color: #ffd93d;
-            text-shadow: 0 0 10px rgba(255, 217, 61, 0.5);
-            font-family: 'Courier New', monospace;
-        }
-
-        .timer.penalty {
-            color: #ff6b6b;
-            animation: shake 0.5s ease-in-out;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
-
-        .controls {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .btn {
-            padding: 15px 30px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .btn-primary {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: linear-gradient(45deg, #4ecdc4, #44a08d);
-            color: white;
-        }
-
-        .btn-success {
-            background: linear-gradient(45deg, #6bcf7f, #4ecdc4);
-            color: white;
-        }
-
-        .btn-warning {
-            background: linear-gradient(45deg, #ffd93d, #f39c12);
-            color: #2c3e50;
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .status {
-            margin: 20px 0;
-            font-size: 1.1rem;
-            font-weight: bold;
-        }
-
-        .status.waiting {
-            color: #ffd93d;
-        }
-
-        .status.running {
-            color: #6bcf7f;
-        }
-
-        .status.stopped {
-            color: #ff6b6b;
-        }
-
-        .penalty-display {
-            background: rgba(255, 107, 107, 0.2);
-            border: 2px solid #ff6b6b;
-            border-radius: 10px;
-            padding: 10px;
-            margin: 10px 0;
-            font-weight: bold;
-            color: #ff6b6b;
-        }
-
-        .game-info {
-            margin-top: 20px;
-            font-size: 0.9rem;
-            opacity: 0.8;
-            line-height: 1.4;
-        }
-
-        @media (max-width: 480px) {
-            .game-container {
-                padding: 20px;
-            }
-            
-            h1 {
-                font-size: 2rem;
-            }
-            
-            .timer {
-                font-size: 2.5rem;
-            }
-            
-            .btn {
-                padding: 12px 25px;
-                font-size: 1.1rem;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="game-container">
@@ -231,244 +27,45 @@
         
         <div class="status waiting" id="status">Ready to start!</div>
         
-        <div id="penaltyDisplay" class="penalty-display" style="display: none;">
-            <span id="penaltyText"></span>
-        </div>
-        
         <div class="controls">
             <button class="btn btn-success" id="startBtn" onclick="startGame()">Start New Game</button>
             <button class="btn btn-primary" id="gotItBtn" onclick="gotIt()" disabled>I Got It!</button>
-            <button class="btn btn-warning" id="correctBtn" onclick="markCorrect()" style="display: none;">Correct Match!</button>
-            <button class="btn btn-secondary" id="wrongBtn" onclick="markWrong()" style="display: none;">Wrong - Add Penalty</button>
+        </div>
+        
+        <!-- Verification Popup -->
+        <div id="verificationPopup" class="popup-overlay" style="display: none;">
+            <div class="popup-content">
+                <h2>🔍 Verification Time!</h2>
+                <p>Is the pattern matched correctly?</p>
+                <div class="popup-buttons">
+                    <button class="btn btn-success" onclick="markCorrect()">✅ Correct!</button>
+                    <button class="btn btn-secondary" onclick="markWrong()">❌ Wrong</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Resume Countdown Popup -->
+        <div id="resumePopup" class="popup-overlay" style="display: none;">
+            <div class="popup-content">
+                <h2>⚠️ Wrong Answer!</h2>
+                <p id="resumeMessage">That player must wait 5 seconds.<br>Everyone else can continue!</p>
+                <button class="btn btn-warning" onclick="startResume()">Got It - Resume Game</button>
+                <div id="countdownDisplay" style="display: none;">
+                    <h3>Resuming in: <span id="countdownNumber">3</span></h3>
+                </div>
+            </div>
         </div>
         
         <div class="game-info">
             <p><strong>How to Play:</strong></p>
             <p>1. Tap "Start New Game" to generate a pattern</p>
-            <p>2. Match the pattern on your Rubik's Cube</p>
-            <p>3. Tap "I Got It!" when finished</p>
-            <p>4. Group verifies - Correct or Wrong?</p>
-            <p>5. Wrong answers add +5 second penalty!</p>
+            <p>2. All players race to match the pattern on their Rubik's Cubes</p>
+            <p>3. First player done taps "I Got It!" to stop and verify</p>
+            <p>4. Group checks: Correct = they win! Wrong = 5 second penalty</p>
+            <p>5. Wrong player waits 5 seconds while others keep trying!</p>
         </div>
     </div>
 
-    <script>
-        class CubeRush {
-            constructor() {
-                this.colors = ['#ff6b6b', '#ffd93d', '#6bcf7f', '#4ecdc4', '#a8e6cf', '#ff8b94'];
-                this.startTime = null;
-                this.elapsedTime = 0;
-                this.penalties = 0;
-                this.isRunning = false;
-                this.isPaused = false;
-                this.timerInterval = null;
-                
-                // Create audio contexts for sound effects
-                this.createSounds();
-            }
-            
-            createSounds() {
-                // Create simple beep sounds using Web Audio API
-                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                
-                this.playBeep = (frequency = 800, duration = 200) => {
-                    const oscillator = this.audioContext.createOscillator();
-                    const gainNode = this.audioContext.createGain();
-                    
-                    oscillator.connect(gainNode);
-                    gainNode.connect(this.audioContext.destination);
-                    
-                    oscillator.frequency.value = frequency;
-                    oscillator.type = 'sine';
-                    
-                    gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration / 1000);
-                    
-                    oscillator.start(this.audioContext.currentTime);
-                    oscillator.stop(this.audioContext.currentTime + duration / 1000);
-                };
-            }
-            
-            generatePattern() {
-                const squares = document.querySelectorAll('.cube-square');
-                squares.forEach((square, index) => {
-                    setTimeout(() => {
-                        const randomColor = this.colors[Math.floor(Math.random() * this.colors.length)];
-                        square.style.backgroundColor = randomColor;
-                        square.classList.add('animate');
-                        setTimeout(() => square.classList.remove('animate'), 300);
-                        
-                        // Play a soft tone for each square
-                        this.playBeep(400 + (index * 50), 150);
-                    }, index * 100);
-                });
-            }
-            
-            startTimer() {
-                this.startTime = Date.now() - this.elapsedTime;
-                this.isRunning = true;
-                this.isPaused = false;
-                
-                this.timerInterval = setInterval(() => {
-                    if (!this.isPaused) {
-                        this.elapsedTime = Date.now() - this.startTime;
-                        this.updateTimerDisplay();
-                    }
-                }, 10);
-            }
-            
-            stopTimer() {
-                this.isRunning = false;
-                this.isPaused = true;
-                if (this.timerInterval) {
-                    clearInterval(this.timerInterval);
-                }
-                
-                // Play stop sound
-                this.playBeep(600, 300);
-            }
-            
-            resumeTimer() {
-                this.startTime = Date.now() - this.elapsedTime;
-                this.isPaused = false;
-            }
-            
-            updateTimerDisplay() {
-                const totalSeconds = Math.floor(this.elapsedTime / 1000);
-                const minutes = Math.floor(totalSeconds / 60);
-                const seconds = totalSeconds % 60;
-                const centiseconds = Math.floor((this.elapsedTime % 1000) / 10);
-                
-                document.getElementById('timer').textContent = 
-                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
-            }
-            
-            addPenalty() {
-                this.penalties++;
-                this.elapsedTime += 5000; // Add 5 seconds
-                
-                // Visual feedback for penalty
-                const timer = document.getElementById('timer');
-                const penaltyDisplay = document.getElementById('penaltyDisplay');
-                
-                timer.classList.add('penalty');
-                setTimeout(() => timer.classList.remove('penalty'), 500);
-                
-                document.getElementById('penaltyText').textContent = 
-                    `Penalty Applied! +5 seconds (Total penalties: ${this.penalties})`;
-                penaltyDisplay.style.display = 'block';
-                
-                setTimeout(() => {
-                    penaltyDisplay.style.display = 'none';
-                }, 3000);
-                
-                // Play penalty sound
-                this.playBeep(200, 500);
-            }
-            
-            reset() {
-                this.elapsedTime = 0;
-                this.penalties = 0;
-                this.isRunning = false;
-                this.isPaused = false;
-                if (this.timerInterval) {
-                    clearInterval(this.timerInterval);
-                }
-                this.updateTimerDisplay();
-            }
-        }
-        
-        const game = new CubeRush();
-        
-        function startGame() {
-            game.reset();
-            
-            // Update UI
-            document.getElementById('status').textContent = 'Generating pattern...';
-            document.getElementById('status').className = 'status waiting';
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('gotItBtn').disabled = true;
-            document.getElementById('correctBtn').style.display = 'none';
-            document.getElementById('wrongBtn').style.display = 'none';
-            document.getElementById('penaltyDisplay').style.display = 'none';
-            
-            // Generate pattern
-            game.generatePattern();
-            
-            // Start timer after pattern is fully generated
-            setTimeout(() => {
-                game.startTimer();
-                document.getElementById('status').textContent = 'GO! Match the pattern!';
-                document.getElementById('status').className = 'status running';
-                document.getElementById('gotItBtn').disabled = false;
-                
-                // Play start sound
-                game.playBeep(800, 300);
-            }, 1000);
-        }
-        
-        function gotIt() {
-            if (!game.isRunning || game.isPaused) return;
-            
-            game.stopTimer();
-            
-            // Update UI for verification
-            document.getElementById('status').textContent = 'Verification Time! Is the pattern correct?';
-            document.getElementById('status').className = 'status stopped';
-            document.getElementById('gotItBtn').disabled = true;
-            document.getElementById('correctBtn').style.display = 'inline-block';
-            document.getElementById('wrongBtn').style.display = 'inline-block';
-        }
-        
-        function markCorrect() {
-            // Game completed successfully
-            const totalSeconds = (game.elapsedTime / 1000).toFixed(2);
-            document.getElementById('status').textContent = 
-                `🎉 SUCCESS! Time: ${totalSeconds}s (Penalties: ${game.penalties})`;
-            document.getElementById('status').className = 'status waiting';
-            
-            // Reset UI
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('correctBtn').style.display = 'none';
-            document.getElementById('wrongBtn').style.display = 'none';
-            
-            // Play success sound
-            game.playBeep(1000, 200);
-            setTimeout(() => game.playBeep(1200, 200), 200);
-            setTimeout(() => game.playBeep(1400, 300), 400);
-        }
-        
-        function markWrong() {
-            // Apply penalty and resume
-            game.addPenalty();
-            game.resumeTimer();
-            
-            // Update UI
-            document.getElementById('status').textContent = 'Wrong! Keep trying...';
-            document.getElementById('status').className = 'status running';
-            document.getElementById('gotItBtn').disabled = false;
-            document.getElementById('correctBtn').style.display = 'none';
-            document.getElementById('wrongBtn').style.display = 'none';
-        }
-        
-        // Initialize timer display
-        game.updateTimerDisplay();
-        
-        // Prevent zoom on mobile
-        document.addEventListener('touchstart', function(event) {
-            if (event.touches.length > 1) {
-                event.preventDefault();
-            }
-        });
-        
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', function(event) {
-            const now = (new Date()).getTime();
-            if (now - lastTouchEnd <= 300) {
-                event.preventDefault();
-            }
-            lastTouchEnd = now;
-        }, false);
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
