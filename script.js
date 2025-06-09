@@ -162,6 +162,8 @@ function markCorrect() {
     game.playBeep(1000, 200);
     setTimeout(() => game.playBeep(1200, 200), 200);
     setTimeout(() => game.playBeep(1400, 300), 400);
+
+    showSuccessPopup();
 }
 
 function markWrong() {
@@ -238,3 +240,23 @@ document.addEventListener('touchend', function(event) {
     }
     lastTouchEnd = now;
 }, false);
+
+//--------------- Success Popup ----------------------------------------------
+
+function showSuccessPopup() {
+    document.getElementById('successTime').textContent = document.getElementById('timer').textContent;
+    document.getElementById('successPenalties').textContent = game.penalties;
+    document.getElementById('successPopup').style.display = 'flex';
+}
+
+function closeSuccess() {
+    document.getElementById('successPopup').style.display = 'none';
+}
+
+function playAgain() {
+    closeSuccess();
+    // Call your start game function here
+    if (typeof startGame === 'function') {
+        startGame();
+    }
+}
