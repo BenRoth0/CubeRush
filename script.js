@@ -391,7 +391,8 @@ class CubeScanner {
 				const x = Math.floor(centerX - gridSize / 2 + col * squareSize + squareSize / 2);
 				const y = Math.floor(centerY - gridSize / 2 + row * squareSize + squareSize / 2);
 
-				const color = this.getEnhancedAverageColor(imageData, x, y, 40);
+				const sampleRadius = squareSize * 0.32; // 32% of the square size is a good default
+				const color = this.getEnhancedAverageColor(imageData, x, y, sampleRadius);
 				colorSamples.push({ color });
 			}
 		}
@@ -506,17 +507,21 @@ class CubeScanner {
 	getEnhancedAverageColor(imageData, centerX, centerY, radius) {
 		const samples = [];
 		const samplePoints = [];
-		const step = Math.max(1, Math.floor(radius / 8));
+		const step = 1;
+		const radiusSq = radius * radius;
 
 		for (let dx = -radius; dx <= radius; dx += step) {
 			for (let dy = -radius; dy <= radius; dy += step) {
-				if (dx * dx + dy * dy <= radius * radius) {
-					samplePoints.push([dx, dy]);
+				const distSq = dx * dx + dy * dy;
+				if (distSq <= radiusSq) {
+					const weight = Math.exp(-distSq / (2 * (radius * 0.5) * (radius * 0.5)));
+					samplePoints.push({ dx, dy, weight });
 				}
 			}
 		}
 
-		for (let [dx, dy] of samplePoints) {
+		// Collect samples
+		for (let { dx, dy, weight } of samplePoints) {
 			const x = Math.round(centerX + dx);
 			const y = Math.round(centerY + dy);
 
@@ -525,30 +530,30 @@ class CubeScanner {
 				const pixelR = imageData.data[index];
 				const pixelG = imageData.data[index + 1];
 				const pixelB = imageData.data[index + 2];
-
-				samples.push({ r: pixelR, g: pixelG, b: pixelB });
+				const brightness = (pixelR + pixelG + pixelB) / 3;
+				samples.push({ r: pixelR, g: pixelG, b: pixelB, weight, brightness });
 			}
 		}
 
-		if (samples.length > 0) {
-			samples.sort((a, b) => (a.r + a.g + a.b) - (b.r + b.g + b.b));
-			const start = Math.floor(samples.length * 0.2);
-			const end = Math.floor(samples.length * 0.8);
-			const trimmed = samples.slice(start, end);
+		// Ignore the darkest 20% of samples (likely gutter)
+		samples.sort((a, b) => a.brightness - b.brightness);
+		const start = Math.floor(samples.length * 0.2);
+		const trimmed = samples.slice(start);
 
-			let r = 0, g = 0, b = 0;
-			for (let sample of trimmed) {
-				r += sample.r;
-				g += sample.g;
-				b += sample.b;
-			}
+		let r = 0, g = 0, b = 0, totalWeight = 0;
+		for (let sample of trimmed) {
+			r += sample.r * sample.weight;
+			g += sample.g * sample.weight;
+			b += sample.b * sample.weight;
+			totalWeight += sample.weight;
+		}
 
-			const count = trimmed.length;
-			return count > 0 ? {
-				r: Math.floor(r / count),
-				g: Math.floor(g / count),
-				b: Math.floor(b / count)
-			} : { r: 128, g: 128, b: 128 };
+		if (totalWeight > 0) {
+			return {
+				r: Math.round(r / totalWeight),
+				g: Math.round(g / totalWeight),
+				b: Math.round(b / totalWeight)
+			};
 		}
 
 		return { r: 128, g: 128, b: 128 };
