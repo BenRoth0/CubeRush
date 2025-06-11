@@ -1,110 +1,151 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cube Rush - Speed Matching Challenge</title>
-    <link rel="stylesheet" href="styles.css">
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Cube Rush - Speed Matching Challenge</title>
+	<link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="game-container">
-        <h1>CUBE RUSH</h1>
-        <p class="subtitle">The Ultimate Speed Matching Challenge</p>
-        
-        <div class="cube-pattern" id="cubePattern">
-            <div class="cube-square"></div>
-            <div class="cube-square"></div>
-            <div class="cube-square"></div>
-            <div class="cube-square"></div>
-            <div class="cube-square"></div>
-            <div class="cube-square"></div>
-            <div class="cube-square"></div>
-            <div class="cube-square"></div>
-            <div class="cube-square"></div>
-        </div>
-        
-        <div class="timer" id="timer">00:00</div>
-        
-        <div class="status waiting" id="status">Ready to start!</div>
-        
-        <div class="controls">
-            <button class="btn btn-green" id="startBtn" onclick="startGame()">Start New Game</button>
-            <button class="btn btn-red" id="gotItBtn" onclick="gotIt()" disabled>I Got It!</button>
-        </div>
-        
-        <!-- Verification Popup -->
-        <div id="verificationPopup" class="popup-overlay" style="display: none;">
-            <div class="popup-content">
-                <h2>🔍 Verification Time!</h2>
-                <p>Is the pattern matched correctly?</p>
-                <div class="popup-buttons">
-                    <button class="btn btn-green" onclick="markCorrect()">Correct!</button>
-                    <button class="btn btn-red" onclick="markWrong()">Wrong</button>
-                    <!-- <button class="btn btn-green" onclick="markCorrect()">✅ Correct!</button>
-                    <button class="btn btn-green" onclick="markWrong()">❌ Wrong</button> -->
-                </div>
-            </div>
-        </div>
-        
-        <!-- Resume Countdown Popup -->
-        <div id="resumePopup" class="popup-overlay" style="display: none;">
-            <div class="popup-content">
-                <h2>⚠️ Wrong Answer!</h2>
-                <p id="resumeMessage">The player who guessed incorrectly <strong>must put down their cube</strong>.</p>
-                <p>Once the game resumes, they <strong>must wait a full 5 seconds</strong> before picking it back up, while everyone else gets to continue immediately!</p>
-                <button class="btn btn-warning" onclick="startResume()">Resume Game</button>
-                <div id="countdownDisplay" style="display: none;">
-                    <h3>Resuming in: <span id="countdownNumber">3</span></h3>
-                </div>
-            </div>
-        </div>
-        
-        <div class="game-info">
-            <h2>🔍 How to Play</h2>
-            <ul>
-                <li>Tap "Start New Game."</li>
-                <li>Match the pattern on your cube. Solve it fast!</li>
-                <li>Tap 'I Got It!' when you think you have it.</li>
-                <li>All players stop and verify that you've done it.</li>
-                <li>If you're wrong, sit out for 10 seconds.</li>
-                <li>If you're right, you win!</li>
-            </ul>
-        </div>
+	<div class="game-container">
+		<h1>CUBE RUSH</h1>
+		<p class="subtitle">The Ultimate Speed Matching Challenge</p>
 
-        <!-- Success Popup -->
-        <div id="successPopup">
-            <div class="success-modal">
-                <!-- Confetti -->
-                <div class="confetti"></div>
-                <div class="confetti"></div>
-                <div class="confetti"></div>
-                <div class="confetti"></div>
-                <div class="confetti"></div>
-                <div class="confetti"></div>
-                <div class="confetti"></div>
-                <div class="confetti"></div>
-                <div class="confetti"></div>
-                
-                <div class="success-icon">🎉</div>
-                <div class="success-title">SUCCESS!</div>
-                <div class="success-time" id="successTime">00:00.00</div>
-                
-                <div class="success-stats">
-                    <div>Wrong Attempts: <span id="successPenalties">0</span></div>
-                    <div>Pattern Complexity: Normal</div>
-                </div>
-                
-                <div class="success-message">
-                    Congratulations! You did it!
-                </div>
-                
-                <div class="success-buttons">
-                    <button class="btn btn-green" onclick="playAgain()">Play Again</button>
-                    <button class="btn btn-red" onclick="closeSuccess()">Close</button>
-                </div>
-            </div>
-        </div>
+		<div class="cube-pattern" id="cubePattern">
+			<div class="cube-square"></div>
+			<div class="cube-square"></div>
+			<div class="cube-square"></div>
+			<div class="cube-square"></div>
+			<div class="cube-square"></div>
+			<div class="cube-square"></div>
+			<div class="cube-square"></div>
+			<div class="cube-square"></div>
+			<div class="cube-square"></div>
+		</div>
 
-    <script src="script.js"></script>
+		<div class="timer" id="timer">00:00</div>
+
+		<div class="status waiting" id="status">Ready to start!</div>
+
+		<div class="controls">
+			<button class="btn btn-green" id="startBtn" onclick="startGame()">Start New Game</button>
+			<button class="btn btn-blue" id="scanBtn" onclick="openScanner()" disabled>📱 Scan Cube</button>
+		</div>
+
+		<!-- Resume Countdown Popup -->
+		<div id="resumePopup" class="popup-overlay" style="display: none;">
+			<div class="popup-content">
+				<h2>⚠️ Wrong Answer!</h2>
+				<p id="resumeMessage">The player who guessed incorrectly <strong>must put down their cube</strong>.</p>
+				<p>Once the game resumes, they <strong>must wait a full 5 seconds</strong> before picking it back up, while everyone else gets to continue immediately!</p>
+				<button class="btn btn-warning" onclick="startResume()">Resume Game</button>
+				<div id="countdownDisplay" style="display: none;">
+					<h3>Resuming in: <span id="countdownNumber">3</span></h3>
+				</div>
+			</div>
+		</div>
+
+		<!-- Camera Scanner Overlay -->
+		<div class="scanner-overlay" id="scannerOverlay">
+			<div class="scanner-header">
+				<h2>📱 Cube Scanner</h2>
+				<p>Position your cube face within the grid</p>
+				<p>Make sure all 9 squares are clearly visible</p>
+			</div>
+
+			<div class="scanner-camera-container">
+				<video id="cameraVideo" autoplay muted playsinline></video>
+				<div class="scanner-grid">
+					<div class="scanner-square"></div>
+					<div class="scanner-square"></div>
+					<div class="scanner-square"></div>
+					<div class="scanner-square"></div>
+					<div class="scanner-square"></div>
+					<div class="scanner-square"></div>
+					<div class="scanner-square"></div>
+					<div class="scanner-square"></div>
+					<div class="scanner-square"></div>
+				</div>
+			</div>
+
+			<div class="scanner-footer">
+				<button class="btn btn-green scanner-btn" onclick="captureAndAnalyze()">Scan Cube</button>
+				<button class="btn btn-red scanner-btn" onclick="closeScanner()">Cancel</button>
+			</div>
+		</div>
+
+		<!-- Scan Results Popup -->
+		<div id="scanResultsPopup" class="popup-overlay" style="display: none;">
+			<div class="popup-content scan-results-content">
+				<h2>🔍 Scan Results</h2>
+				<div class="results-section">
+					<h3>Detected Pattern:</h3>
+					<div class="detected-pattern" id="detectedPatternResult">
+						<div class="detected-square"></div>
+						<div class="detected-square"></div>
+						<div class="detected-square"></div>
+						<div class="detected-square"></div>
+						<div class="detected-square"></div>
+						<div class="detected-square"></div>
+						<div class="detected-square"></div>
+						<div class="detected-square"></div>
+						<div class="detected-square"></div>
+					</div>
+				</div>
+				<div id="matchResultPopup" class="match-result"></div>
+				<div class="popup-buttons">
+					<button class="btn btn-blue" onclick="scanAgain()">🔄 Scan Again</button>
+					<button class="btn btn-green" onclick="confirmMatch()" id="resumeBtn">▶️ Continue</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="game-info">
+			<h2>🔍 How to Play</h2>
+			<ul>
+				<li>Tap "Start New Game."</li>
+				<li>Match the pattern on your cube. Solve it fast!</li>
+				<li>Tap 'Scan Cube' to verify with your camera.</li>
+				<li>If you're wrong, sit out for 10 seconds.</li>
+				<li>If you're right, you win!</li>
+			</ul>
+		</div>
+
+		<!-- Success Popup -->
+		<div id="successPopup">
+			<div class="success-modal">
+				<!-- Confetti -->
+				<div class="confetti"></div>
+				<div class="confetti"></div>
+				<div class="confetti"></div>
+				<div class="confetti"></div>
+				<div class="confetti"></div>
+				<div class="confetti"></div>
+				<div class="confetti"></div>
+				<div class="confetti"></div>
+				<div class="confetti"></div>
+
+				<div class="success-icon">🎉</div>
+				<div class="success-title">SUCCESS!</div>
+				<div class="success-time" id="successTime">00:00.00</div>
+
+				<div class="success-stats">
+					<div>Wrong Attempts: <span id="successPenalties">0</span></div>
+					<div>Pattern Complexity: Normal</div>
+				</div>
+
+				<div class="success-message">
+					Congratulations! You did it!
+				</div>
+
+				<div class="success-buttons">
+					<button class="btn btn-green" onclick="playAgain()">Play Again</button>
+					<button class="btn btn-red" onclick="closeSuccess()">Close</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<canvas id="canvas" style="display: none;"></canvas>
+	<script src="script.js"></script>
 </body>
 </html>
