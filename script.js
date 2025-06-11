@@ -1,20 +1,48 @@
+/**
+ * ====================================================================
+ * CUBE RUSH GAME - Main Game Logic Class
+ * ====================================================================
+ * This class handles the core game mechanics including:
+ * - Pattern generation and display
+ * - Timer management 
+ * - Audio feedback
+ * - Game state tracking
+ * - Pattern comparison and validation
+ */
 class CubeRush {
+	/**
+	* Constructor for CubeRush
+	* Initializes game state and audio system
+	*/
 	constructor() {
+		// Game configuration - available colors for the Rubik's cube faces
 		this.colors = ['#ff0000', '#0000ff', '#00ff00', '#ffff00', '#ff8c00', '#ffffff'];
-		this.currentPattern = [];
-		this.startTime = null;
-		this.elapsedTime = 0;
-		this.penalties = 0;
-		this.isRunning = false;
-		this.isPaused = false;
-		this.timerInterval = null;
 
+		// Game state variables
+		this.currentPattern = [];    // Stores the pattern player needs to match
+		this.startTime = null;       // When the current game started
+		this.elapsedTime = 0;        // Total time elapsed in milliseconds
+		this.penalties = 0;          // Number of wrong attempts
+		this.isRunning = false;      // Whether game is actively running
+		this.isPaused = false;       // Whether timer is paused (during scanning)
+		this.timerInterval = null;   // Reference to timer update interval
+
+		// Initialize audio system
 		this.createSounds();
 	}
 
+	/**
+	* AUDIO SYSTEM INITIALIZATION
+	* Creates Web Audio API context and beep sound generator
+	*/
 	createSounds() {
 		this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
+		/**
+	 * Generate beep sounds for game feedback
+	 * @param {number} frequency - Sound frequency in Hz (default: 800)
+	 * @param {number} duration - Sound duration in milliseconds (default: 200)
+	 */
 		this.playBeep = (frequency = 800, duration = 200) => {
 			const oscillator = this.audioContext.createOscillator();
 			const gainNode = this.audioContext.createGain();
@@ -33,22 +61,37 @@ class CubeRush {
 		};
 	}
 
+	/**
+	* PATTERN GENERATION
+	* Creates a random 3x3 color pattern and displays it to the player
+	* with animated sequence and audio feedback
+	*/
 	generatePattern() {
 		this.currentPattern = [];
 		const squares = document.querySelectorAll('.cube-square');
+
 		squares.forEach((square, index) => {
 			setTimeout(() => {
 				const randomColor = this.colors[Math.floor(Math.random() * this.colors.length)];
 				square.style.backgroundColor = randomColor;
 				square.classList.add('animate');
 				this.currentPattern.push(randomColor);
-				setTimeout(() => square.classList.remove('animate'), 300);
 
+				setTimeout(() => square.classList.remove('animate'), 300);
 				this.playBeep(400 + (index * 50), 150);
 			}, index * 100);
 		});
 	}
 
+	/**
+	* TIMER MANAGEMENT FUNCTIONS
+	* Handle game timing including start, stop, pause, and resume functionality
+	*/
+
+	/**
+	* Start or resume the game timer
+	* Updates display every 10ms for smooth centisecond precision
+	*/
 	startTimer() {
 		this.startTime = Date.now() - this.elapsedTime;
 		this.isRunning = true;
@@ -62,11 +105,19 @@ class CubeRush {
 		}, 10);
 	}
 
+	/**
+	* Pause the timer (used when camera scanner is open)
+	* Plays audio feedback to indicate pause
+	*/
 	stopTimer() {
 		this.isPaused = true;
 		this.playBeep(600, 300);
 	}
 
+	/**
+	* Resume the timer after being paused
+	* Recalculates start time to account for pause duration
+	*/
 	resumeTimer() {
 		if (this.isRunning) {
 			this.startTime = Date.now() - this.elapsedTime;
@@ -74,6 +125,10 @@ class CubeRush {
 		}
 	}
 
+	/**
+	* Update the timer display in MM:SS.CC format
+	* Shows minutes, seconds, and centiseconds
+	*/
 	updateTimerDisplay() {
 		const totalSeconds = Math.floor(this.elapsedTime / 1000);
 		const minutes = Math.floor(totalSeconds / 60);
@@ -84,22 +139,70 @@ class CubeRush {
 			`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
 	}
 
+	/**
+	* GAME STATE MANAGEMENT
+	*/
+
+	/**
+	* Add a penalty for incorrect pattern matching
+	* Used for scoring and performance tracking
+	*/
 	addPenalty() {
 		this.penalties++;
 	}
 
+	/**
+	* Reset all game state to initial values
+	* Prepares for a new game round
+	*/
 	reset() {
 		this.elapsedTime = 0;
 		this.penalties = 0;
 		this.isRunning = false;
 		this.isPaused = false;
 		this.currentPattern = [];
+
 		if (this.timerInterval) {
 			clearInterval(this.timerInterval);
 		}
+
 		this.updateTimerDisplay();
 	}
 
+	/**
+	* ================================================================
+	* COLOR MATCHING ALGORITHM OVERVIEW
+	* ================================================================
+	* This algorithm robustly matches detected cube face colors to the
+	* six standard Rubik's cube colors (red, blue, green, yellow, orange, white).
+	* 
+	* 1. Sampling & Averaging:
+	*    - For each grid square, a circular region of pixels is sampled from the camera frame.
+	*    - The average RGB value is computed, with outliers trimmed to reduce noise.
+	* 
+	* 2. White Detection Priority:
+	*    - If all RGB channels are high and close in value, the color is immediately classified as white.
+	*    - This prevents confusion between white and light orange/yellow.
+	* 
+	* 3. Color Similarity Scoring:
+	*    - For non-white colors, the algorithm compares the detected color to each game color.
+	*    - It uses both RGB and HSV color spaces to calculate a similarity score:
+	*        - RGB distance (numerical closeness)
+	*        - Hue, saturation, and value differences (for lighting/camera variation)
+	*    - Special handling penalizes orange if brightness is too high (to avoid white/orange mix-ups).
+	* 
+	* 4. Best Match Selection:
+	*    - The color with the highest similarity score is selected as the match for that square.
+	* 
+	* This approach is robust to lighting changes, camera noise, and color variations,
+	* ensuring accurate and fair gameplay.
+	*/
+
+	/**
+	* Compare two color patterns for matching
+	* @param {Array} detectedPattern - Array of hex color codes from camera detection
+	* @returns {boolean} - True if patterns match, false otherwise
+	*/
 	comparePatterns(detectedPattern) {
 		if (this.currentPattern.length !== detectedPattern.length) {
 			return false;
@@ -113,12 +216,18 @@ class CubeRush {
 		return true;
 	}
 
+	/**
+	* Check if two colors match within acceptable tolerance
+	* Uses generous tolerance to account for lighting conditions and camera variations
+	* @param {string} color1 - First color (hex format)
+	* @param {string} color2 - Second color (hex format)  
+	* @returns {boolean} - True if colors are close enough to be considered matching
+	*/
 	colorsMatch(color1, color2) {
-		// Convert hex colors to RGB for comparison with tolerance
 		const rgb1 = this.hexToRgb(color1);
 		const rgb2 = this.hexToRgb(color2);
 
-		const tolerance = 40; // Allow some variation in color detection
+		const tolerance = 120;
 
 		return (
 			Math.abs(rgb1.r - rgb2.r) < tolerance &&
@@ -127,6 +236,11 @@ class CubeRush {
 		);
 	}
 
+	/**
+	* Convert hex color code to RGB values
+	* @param {string} hex - Hex color code (e.g., "#ff0000")
+	* @returns {Object|null} - RGB object {r, g, b} or null if invalid hex
+	*/
 	hexToRgb(hex) {
 		const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
 		return result ? {
@@ -136,25 +250,41 @@ class CubeRush {
 		} : null;
 	}
 
+	/**
+	* SUCCESS HANDLING
+	* Display success popup with final time and penalty count
+	* Includes celebratory audio sequence
+	*/
 	showSuccess() {
 		clearInterval(this.timerInterval);
 
-		const totalSeconds = (this.elapsedTime / 1000).toFixed(2);
 		document.getElementById('successTime').textContent =
 			`${Math.floor(this.elapsedTime / 60000).toString().padStart(2, '0')}:${Math.floor((this.elapsedTime % 60000) / 1000).toString().padStart(2, '0')}.${Math.floor((this.elapsedTime % 1000) / 10).toString().padStart(2, '0')}`;
 
 		document.getElementById('successPenalties').textContent = this.penalties;
 		document.getElementById('successPopup').style.display = 'flex';
 
-		// Play success sound sequence
 		this.playBeep(1000, 200);
 		setTimeout(() => this.playBeep(1200, 200), 200);
 		setTimeout(() => this.playBeep(1400, 300), 400);
 	}
 }
 
-// Camera Scanner Class
+/**
+ * ====================================================================
+ * CUBE SCANNER CLASS - Advanced Computer Vision System
+ * ====================================================================
+ * This class handles all camera and image processing functionality:
+ * - Camera access and video stream management
+ * - Real-time color detection and analysis  
+ * - Advanced color matching algorithms using RGB and HSV color spaces
+ * - Noise reduction and statistical analysis for accuracy
+ */
 class CubeScanner {
+	/**
+	* Constructor for CubeScanner
+	* Initializes DOM references and state
+	*/
 	constructor() {
 		this.video = document.getElementById('cameraVideo');
 		this.canvas = document.getElementById('canvas');
@@ -163,6 +293,11 @@ class CubeScanner {
 		this.detectedColors = [];
 	}
 
+	/**
+	* Initialize and start camera stream
+	* Requests back camera on mobile devices for better cube scanning
+	* @returns {Promise<boolean>} - True if camera started successfully, false otherwise
+	*/
 	async startCamera() {
 		try {
 			this.stream = await navigator.mediaDevices.getUserMedia({
@@ -181,6 +316,10 @@ class CubeScanner {
 		}
 	}
 
+	/**
+	* Stop camera stream and release resources
+	* Important for battery life and privacy
+	*/
 	stopCamera() {
 		if (this.stream) {
 			this.stream.getTracks().forEach(track => track.stop());
@@ -188,23 +327,30 @@ class CubeScanner {
 		}
 	}
 
+	/**
+	* Capture current video frame to canvas for analysis
+	* @returns {HTMLCanvasElement} - Canvas containing the captured frame
+	*/
 	captureFrame() {
-		const videoRect = this.video.getBoundingClientRect();
 		this.canvas.width = this.video.videoWidth;
 		this.canvas.height = this.video.videoHeight;
-
 		this.ctx.drawImage(this.video, 0, 0);
 		return this.canvas;
 	}
 
+	/**
+	* MAIN COLOR ANALYSIS FUNCTION
+	* Analyzes captured image and detects colors in 3x3 grid pattern
+	* Uses advanced sampling techniques for accurate color detection
+	* @returns {Array} - Array of 9 hex color codes representing the detected pattern
+		*/
 	analyzeColors() {
 		const canvas = this.captureFrame();
 		const imageData = this.ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-		// Calculate grid positions (3x3 grid in center of image)
 		const centerX = canvas.width / 2;
 		const centerY = canvas.height / 2;
-		const gridSize = Math.min(canvas.width, canvas.height) * 0.35;
+		const gridSize = Math.min(canvas.width, canvas.height) * 0.4;
 		const squareSize = gridSize / 3;
 
 		this.detectedColors = [];
@@ -214,9 +360,8 @@ class CubeScanner {
 				const x = Math.floor(centerX - gridSize / 2 + col * squareSize + squareSize / 2);
 				const y = Math.floor(centerY - gridSize / 2 + row * squareSize + squareSize / 2);
 
-				// Use multiple sampling points and larger radius for better accuracy
-				const color = this.getEnhancedAverageColor(imageData, x, y, 25);
-				const matchedColor = this.matchToGameColor(color);
+				const color = this.getEnhancedAverageColor(imageData, x, y, 40);
+				const matchedColor = this.matchToGameColorWithWhitePriority(color);
 				this.detectedColors.push(matchedColor);
 			}
 		}
@@ -224,17 +369,123 @@ class CubeScanner {
 		return this.detectedColors;
 	}
 
-	getEnhancedAverageColor(imageData, centerX, centerY, radius) {
-		let r = 0, g = 0, b = 0, count = 0;
-		const samples = [];
-
-		// Take multiple samples in a cross pattern for better accuracy
-		const samplePoints = [
-			[0, 0], // center
-			[-radius / 2, -radius / 2], [-radius / 2, radius / 2],
-			[radius / 2, -radius / 2], [radius / 2, radius / 2],
-			[-radius, 0], [radius, 0], [0, -radius], [0, radius]
+	/**
+	* Improved color matching to prioritize white detection
+	* @param {Object} detectedColor - {r, g, b}
+	* @returns {string} - Hex code of matched color
+	*/
+	matchToGameColorWithWhitePriority(detectedColor) {
+		const gameColors = [
+			{ hex: '#ff0000', rgb: { r: 255, g: 0, b: 0 }, name: 'Red' },
+			{ hex: '#0000ff', rgb: { r: 0, g: 0, b: 255 }, name: 'Blue' },
+			{ hex: '#00ff00', rgb: { r: 0, g: 255, b: 0 }, name: 'Green' },
+			{ hex: '#ffff00', rgb: { r: 255, g: 255, b: 0 }, name: 'Yellow' },
+			{ hex: '#ff8c00', rgb: { r: 255, g: 140, b: 0 }, name: 'Orange' },
+			{ hex: '#ffffff', rgb: { r: 255, g: 255, b: 255 }, name: 'White' }
 		];
+
+		// White detection: if all channels are high and close to each other, it's white
+		const minWhite = 210;
+		const maxDiff = 25;
+		if (
+			detectedColor.r > minWhite &&
+			detectedColor.g > minWhite &&
+			detectedColor.b > minWhite &&
+			Math.abs(detectedColor.r - detectedColor.g) < maxDiff &&
+			Math.abs(detectedColor.r - detectedColor.b) < maxDiff &&
+			Math.abs(detectedColor.g - detectedColor.b) < maxDiff
+		) {
+			return '#ffffff';
+		}
+
+		// Otherwise, use the original matching logic
+		const detectedHSV = this.rgbToHsv(detectedColor.r, detectedColor.g, detectedColor.b);
+
+		let bestMatch = gameColors[0];
+		let bestScore = -1;
+
+		for (let color of gameColors) {
+			const colorHSV = this.rgbToHsv(color.rgb.r, color.rgb.g, color.rgb.b);
+			const score = this.calculateColorScoreImproved(detectedColor, detectedHSV, color.rgb, colorHSV);
+
+			if (score > bestScore) {
+				bestScore = score;
+				bestMatch = color;
+			}
+		}
+
+		return bestMatch.hex;
+	}
+
+	/**
+	* Improved color similarity score to help white/orange distinction
+	* @param {Object} detectedRGB
+	* @param {Object} detectedHSV
+	* @param {Object} targetRGB
+	* @param {Object} targetHSV
+	* @returns {number}
+	*/
+	calculateColorScoreImproved(detectedRGB, detectedHSV, targetRGB, targetHSV) {
+		// Special handling for white
+		if (targetRGB.r === 255 && targetRGB.g === 255 && targetRGB.b === 255) {
+			const brightness = (detectedRGB.r + detectedRGB.g + detectedRGB.b) / 3;
+			const colorStdDev = Math.sqrt(
+				(Math.pow(detectedRGB.r - brightness, 2) +
+					Math.pow(detectedRGB.g - brightness, 2) +
+					Math.pow(detectedRGB.b - brightness, 2)) / 3
+			);
+			// Require high brightness and low stddev for white
+			if (brightness > 210 && colorStdDev < 18) return 1000;
+			return Math.max(0, brightness - 180 - colorStdDev * 2);
+		}
+
+		// Penalize orange if brightness is very high (to avoid white/orange confusion)
+		if (targetRGB.r === 255 && targetRGB.g === 140 && targetRGB.b === 0) {
+			const brightness = (detectedRGB.r + detectedRGB.g + detectedRGB.b) / 3;
+			if (brightness > 220) return 0;
+		}
+
+		const rgbDistance = Math.sqrt(
+			Math.pow(detectedRGB.r - targetRGB.r, 2) +
+			Math.pow(detectedRGB.g - targetRGB.g, 2) +
+			Math.pow(detectedRGB.b - targetRGB.b, 2)
+		);
+
+		let hueDiff = Math.abs(detectedHSV.h - targetHSV.h);
+		if (hueDiff > 180) hueDiff = 360 - hueDiff;
+
+		const satDiff = Math.abs(detectedHSV.s - targetHSV.s);
+		const valDiff = Math.abs(detectedHSV.v - targetHSV.v);
+
+		const rgbScore = Math.max(0, 441 - rgbDistance);
+		const hueScore = Math.max(0, 180 - hueDiff);
+		const satScore = Math.max(0, 100 - satDiff);
+		const valScore = Math.max(0, 100 - valDiff);
+
+		return (hueScore * 0.4) + (rgbScore * 0.3) + (satScore * 0.2) + (valScore * 0.1);
+	}
+
+	/**
+	* ADVANCED COLOR SAMPLING ALGORITHM
+	* Uses statistical analysis and noise reduction for accurate color detection
+	* @param {ImageData} imageData - Canvas image data
+	* @param {number} centerX - X coordinate of sampling center
+	* @param {number} centerY - Y coordinate of sampling center  
+	* @param {number} radius - Sampling radius in pixels
+	* @returns {Object} - RGB color object {r, g, b}
+	*/
+	getEnhancedAverageColor(imageData, centerX, centerY, radius) {
+		const samples = [];
+		const samplePoints = [];
+		const step = Math.max(1, Math.floor(radius / 8));
+
+		for (let dx = -radius; dx <= radius; dx += step) {
+			for (let dy = -radius; dy <= radius; dy += step) {
+				if (dx * dx + dy * dy <= radius * radius) {
+					samplePoints.push([dx, dy]);
+				}
+			}
+		}
 
 		for (let [dx, dy] of samplePoints) {
 			const x = Math.round(centerX + dx);
@@ -250,65 +501,69 @@ class CubeScanner {
 			}
 		}
 
-		// Remove outliers and average the remaining samples
-		if (samples.length > 3) {
+		if (samples.length > 0) {
 			samples.sort((a, b) => (a.r + a.g + a.b) - (b.r + b.g + b.b));
-			const trimmed = samples.slice(1, -1); // Remove brightest and darkest
+			const start = Math.floor(samples.length * 0.2);
+			const end = Math.floor(samples.length * 0.8);
+			const trimmed = samples.slice(start, end);
 
+			let r = 0, g = 0, b = 0;
 			for (let sample of trimmed) {
 				r += sample.r;
 				g += sample.g;
 				b += sample.b;
-				count++;
 			}
-		} else {
-			for (let sample of samples) {
-				r += sample.r;
-				g += sample.g;
-				b += sample.b;
-				count++;
-			}
+
+			const count = trimmed.length;
+			return count > 0 ? {
+				r: Math.floor(r / count),
+				g: Math.floor(g / count),
+				b: Math.floor(b / count)
+			} : { r: 128, g: 128, b: 128 };
 		}
 
-		return count > 0 ? {
-			r: Math.floor(r / count),
-			g: Math.floor(g / count),
-			b: Math.floor(b / count)
-		} : { r: 0, g: 0, b: 0 };
+		return { r: 128, g: 128, b: 128 };
 	}
 
-	matchToGameColor(detectedColor) {
-		const gameColors = [
-			{ hex: '#ff0000', rgb: { r: 255, g: 0, b: 0 }, name: 'Red' },
-			{ hex: '#0000ff', rgb: { r: 0, g: 0, b: 255 }, name: 'Blue' },
-			{ hex: '#00ff00', rgb: { r: 0, g: 255, b: 0 }, name: 'Green' },
-			{ hex: '#ffff00', rgb: { r: 255, g: 255, b: 0 }, name: 'Yellow' },
-			{ hex: '#ff8c00', rgb: { r: 255, g: 140, b: 0 }, name: 'Orange' },
-			{ hex: '#ffffff', rgb: { r: 255, g: 255, b: 255 }, name: 'White' }
-		];
+	/**
+	* Convert RGB to HSV color space
+	* @param {number} r
+	* @param {number} g
+	* @param {number} b
+	* @returns {Object} - {h, s, v}
+	*/
+	rgbToHsv(r, g, b) {
+		r /= 255;
+		g /= 255;
+		b /= 255;
 
-		let bestMatch = gameColors[0];
-		let minDistance = this.colorDistance(detectedColor, gameColors[0].rgb);
+		const max = Math.max(r, g, b);
+		const min = Math.min(r, g, b);
+		const diff = max - min;
 
-		for (let color of gameColors) {
-			const distance = this.colorDistance(detectedColor, color.rgb);
-			if (distance < minDistance) {
-				minDistance = distance;
-				bestMatch = color;
+		let h = 0;
+		if (diff !== 0) {
+			if (max === r) {
+				h = ((g - b) / diff) % 6;
+			} else if (max === g) {
+				h = (b - r) / diff + 2;
+			} else {
+				h = (r - g) / diff + 4;
 			}
 		}
+		h = Math.round(h * 60);
+		if (h < 0) h += 360;
 
-		return bestMatch.hex;
+		const s = max === 0 ? 0 : diff / max;
+		const v = max;
+
+		return { h, s: s * 100, v: v * 100 };
 	}
 
-	colorDistance(color1, color2) {
-		return Math.sqrt(
-			Math.pow(color1.r - color2.r, 2) +
-			Math.pow(color1.g - color2.g, 2) +
-			Math.pow(color1.b - color2.b, 2)
-		);
-	}
-
+	/**
+	* Display detected pattern in UI
+	* @param {Array} colors - Array of hex color codes
+	*/
 	displayDetectedPattern(colors) {
 		const squares = document.querySelectorAll('#detectedPatternResult .detected-square');
 		colors.forEach((color, index) => {
@@ -319,11 +574,20 @@ class CubeScanner {
 	}
 }
 
+/**
+ * ====================================================================
+ * GAME INITIALIZATION AND UI INTERACTIONS
+ * ====================================================================
+ * Handles all UI and event logic for Cube Rush
+ */
+
 // Initialize the game and scanner
 const game = new CubeRush();
 const scanner = new CubeScanner();
 
-// Global functions for button interactions
+/**
+ * Start a new game round
+ */
 function startGame() {
 	game.reset();
 
@@ -344,6 +608,9 @@ function startGame() {
 	}, 1000);
 }
 
+/**
+ * Open the scanner overlay and start camera
+ */
 async function openScanner() {
 	if (!game.isRunning) return;
 
@@ -352,11 +619,13 @@ async function openScanner() {
 
 	const cameraStarted = await scanner.startCamera();
 	if (!cameraStarted) {
-		// If camera failed to start, close scanner and resume timer
 		closeScanner();
 	}
 }
 
+/**
+ * Close the scanner overlay and stop camera
+ */
 function closeScanner() {
 	scanner.stopCamera();
 	document.getElementById('scannerOverlay').style.display = 'none';
@@ -366,6 +635,9 @@ function closeScanner() {
 	}
 }
 
+/**
+ * Capture and analyze the cube pattern from camera
+ */
 function captureAndAnalyze() {
 	try {
 		const detectedColors = scanner.analyzeColors();
@@ -382,7 +654,6 @@ function captureAndAnalyze() {
 			resultDiv.className = 'match-result match-incorrect';
 		}
 
-		// Close scanner and show results
 		scanner.stopCamera();
 		document.getElementById('scannerOverlay').style.display = 'none';
 		document.getElementById('scanResultsPopup').style.display = 'flex';
@@ -393,14 +664,19 @@ function captureAndAnalyze() {
 	}
 }
 
+/**
+ * Re-open the scanner for another attempt
+ */
 function scanAgain() {
 	document.getElementById('scanResultsPopup').style.display = 'none';
-	// Re-open the scanner
 	setTimeout(() => {
 		openScanner();
 	}, 100);
 }
 
+/**
+ * Confirm the match and handle result
+ */
 function confirmMatch() {
 	try {
 		const isMatch = game.comparePatterns(scanner.detectedColors);
@@ -408,7 +684,6 @@ function confirmMatch() {
 		document.getElementById('scanResultsPopup').style.display = 'none';
 
 		if (isMatch) {
-			// Success!
 			game.showSuccess();
 
 			document.getElementById('status').textContent = '🎉 SUCCESS!';
@@ -417,30 +692,33 @@ function confirmMatch() {
 			document.getElementById('startBtn').disabled = false;
 			document.getElementById('scanBtn').disabled = true;
 		} else {
-			// Wrong answer - no penalty timer, just resume immediately for multiplayer
 			game.addPenalty();
 
 			document.getElementById('status').textContent = 'Wrong answer! Keep trying...';
 			document.getElementById('status').className = 'status running';
 
-			// Resume the timer immediately for multiplayer gameplay
 			game.resumeTimer();
-			game.playBeep(400, 300); // Different sound for wrong answer
+			game.playBeep(400, 300);
 		}
 	} catch (error) {
 		console.error('Error in confirmMatch:', error);
-		// Fallback: resume the game
 		game.resumeTimer();
 		document.getElementById('status').textContent = 'Game resumed! Keep trying...';
 		document.getElementById('status').className = 'status running';
 	}
 }
 
+/**
+ * Start a new game after success
+ */
 function playAgain() {
 	document.getElementById('successPopup').style.display = 'none';
 	startGame();
 }
 
+/**
+ * Close the success popup and reset UI
+ */
 function closeSuccess() {
 	document.getElementById('successPopup').style.display = 'none';
 	document.getElementById('startBtn').disabled = false;
