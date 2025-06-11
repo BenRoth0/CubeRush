@@ -302,14 +302,21 @@ class CubeScanner {
 		try {
 			this.stream = await navigator.mediaDevices.getUserMedia({
 				video: {
-					facingMode: 'environment', // Use back camera on mobile
-					width: { ideal: 1280 },
-					height: { ideal: 720 }
+					facingMode: { ideal: 'environment' },
+					width: { ideal: 4096, max: 4096 },
+					height: { ideal: 2160, max: 2160 },
+					// Try to disable auto features if supported
+					advanced: [
+						{ focusMode: "manual" },
+						{ whiteBalanceMode: "manual" },
+						{ exposureMode: "manual" }
+					]
 				}
 			});
 			this.video.srcObject = this.stream;
 			return true;
-		} catch (error) {
+		}
+		catch (error) {
 			console.error('Error accessing camera:', error);
 			alert('Could not access camera. Please make sure camera permissions are enabled.');
 			return false;
@@ -366,7 +373,7 @@ class CubeScanner {
 			);
 			return (hsv.s < minSat + 20 && diff < minDiff + 20);
 		});
-	}
+}
 
 	/**
 	* MAIN COLOR ANALYSIS FUNCTION
@@ -397,13 +404,16 @@ class CubeScanner {
 			}
 		}
 
-		const isWhiteArr = this.findWhiteSquares(colorSamples);
+		// Normalize color samples by white balance
+		const normalizedSamples = this.normalizeColorsByWhiteBalance(colorSamples);
 
-		for (let i = 0; i < colorSamples.length; i++) {
+		const isWhiteArr = this.findWhiteSquares(normalizedSamples);
+
+		for (let i = 0; i < normalizedSamples.length; i++) {
 			if (isWhiteArr[i]) {
 				this.detectedColors.push('#ffffff');
 			} else {
-				const { color } = colorSamples[i];
+				const { color } = normalizedSamples[i];
 				const matchedColor = this.matchToGameColorNoWhite(color);
 				this.detectedColors.push(matchedColor);
 			}
@@ -557,6 +567,24 @@ class CubeScanner {
 		}
 
 		return { r: 128, g: 128, b: 128 };
+	}
+
+	normalizeColorsByWhiteBalance(colorSamples) {
+		// Find the brightest sample (by sum of r+g+b)
+		let maxBrightness = 0;
+		colorSamples.forEach(({ color }) => {
+			const brightness = color.r + color.g + color.b;
+			if (brightness > maxBrightness) maxBrightness = brightness;
+		});
+		// Scale all colors so the brightest becomes 255,255,255
+		const scale = maxBrightness > 0 ? 765 / maxBrightness : 1; // 765 = 255*3
+		return colorSamples.map(({ color }) => ({
+			color: {
+				r: Math.min(255, Math.round(color.r * scale)),
+				g: Math.min(255, Math.round(color.g * scale)),
+				b: Math.min(255, Math.round(color.b * scale))
+			}
+		}));
 	}
 
 	/**
