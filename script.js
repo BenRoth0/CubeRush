@@ -339,11 +339,41 @@ class CubeScanner {
 	}
 
 	/**
+	* Find which squares are white based on lowest saturation and channel difference
+	* @param {Array} colorSamples - Array of {color}
+	* @returns {Array} - Boolean array, true if white
+	*/
+	findWhiteSquares(colorSamples) {
+		let minSat = 1000;
+		let minDiff = 1000;
+		colorSamples.forEach(({ color }) => {
+			const hsv = this.rgbToHsv(color.r, color.g, color.b);
+			const diff = Math.max(
+				Math.abs(color.r - color.g),
+				Math.abs(color.r - color.b),
+				Math.abs(color.g - color.b)
+			);
+			if (hsv.s < minSat) minSat = hsv.s;
+			if (diff < minDiff) minDiff = diff;
+		});
+		// Mark as white if both are very low (relative to grid)
+		return colorSamples.map(({ color }) => {
+			const hsv = this.rgbToHsv(color.r, color.g, color.b);
+			const diff = Math.max(
+				Math.abs(color.r - color.g),
+				Math.abs(color.r - color.b),
+				Math.abs(color.g - color.b)
+			);
+			return (hsv.s < minSat + 20 && diff < minDiff + 20);
+		});
+	}
+
+	/**
 	* MAIN COLOR ANALYSIS FUNCTION
 	* Analyzes captured image and detects colors in 3x3 grid pattern
 	* Uses advanced sampling techniques for accurate color detection
 	* @returns {Array} - Array of 9 hex color codes representing the detected pattern
-		*/
+	*/
 	analyzeColors() {
 		const canvas = this.captureFrame();
 		const imageData = this.ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -354,6 +384,7 @@ class CubeScanner {
 		const squareSize = gridSize / 3;
 
 		this.detectedColors = [];
+		const colorSamples = [];
 
 		for (let row = 0; row < 3; row++) {
 			for (let col = 0; col < 3; col++) {
@@ -361,7 +392,18 @@ class CubeScanner {
 				const y = Math.floor(centerY - gridSize / 2 + row * squareSize + squareSize / 2);
 
 				const color = this.getEnhancedAverageColor(imageData, x, y, 40);
-				const matchedColor = this.matchToGameColorWithWhitePriority(color);
+				colorSamples.push({ color });
+			}
+		}
+
+		const isWhiteArr = this.findWhiteSquares(colorSamples);
+
+		for (let i = 0; i < colorSamples.length; i++) {
+			if (isWhiteArr[i]) {
+				this.detectedColors.push('#ffffff');
+			} else {
+				const { color } = colorSamples[i];
+				const matchedColor = this.matchToGameColorNoWhite(color);
 				this.detectedColors.push(matchedColor);
 			}
 		}
@@ -370,43 +412,49 @@ class CubeScanner {
 	}
 
 	/**
-	* Improved color matching to prioritize white detection
+	* Match to game color, but never return white (white is handled separately)
 	* @param {Object} detectedColor - {r, g, b}
 	* @returns {string} - Hex code of matched color
 	*/
-	matchToGameColorWithWhitePriority(detectedColor) {
+	matchToGameColorNoWhite(detectedColor) {
 		const gameColors = [
 			{ hex: '#ff0000', rgb: { r: 255, g: 0, b: 0 }, name: 'Red' },
 			{ hex: '#0000ff', rgb: { r: 0, g: 0, b: 255 }, name: 'Blue' },
 			{ hex: '#00ff00', rgb: { r: 0, g: 255, b: 0 }, name: 'Green' },
 			{ hex: '#ffff00', rgb: { r: 255, g: 255, b: 0 }, name: 'Yellow' },
-			{ hex: '#ff8c00', rgb: { r: 255, g: 140, b: 0 }, name: 'Orange' },
-			{ hex: '#ffffff', rgb: { r: 255, g: 255, b: 255 }, name: 'White' }
+			{ hex: '#ff8c00', rgb: { r: 255, g: 140, b: 0 }, name: 'Orange' }
 		];
 
-		// White detection: if all channels are high and close to each other, it's white
-		const minWhite = 210;
-		const maxDiff = 25;
-		if (
-			detectedColor.r > minWhite &&
-			detectedColor.g > minWhite &&
-			detectedColor.b > minWhite &&
-			Math.abs(detectedColor.r - detectedColor.g) < maxDiff &&
-			Math.abs(detectedColor.r - detectedColor.b) < maxDiff &&
-			Math.abs(detectedColor.g - detectedColor.b) < maxDiff
-		) {
-			return '#ffffff';
-		}
-
-		// Otherwise, use the original matching logic
-		const detectedHSV = this.rgbToHsv(detectedColor.r, detectedColor.g, detectedColor.b);
+		const { r, g, b } = detectedColor;
+		const detectedHSV = this.rgbToHsv(r, g, b);
 
 		let bestMatch = gameColors[0];
 		let bestScore = -1;
 
 		for (let color of gameColors) {
 			const colorHSV = this.rgbToHsv(color.rgb.r, color.rgb.g, color.rgb.b);
-			const score = this.calculateColorScoreImproved(detectedColor, detectedHSV, color.rgb, colorHSV);
+			let score = this.calculateColorScoreImproved(detectedColor, detectedHSV, color.rgb, colorHSV);
+
+			// Red: hue near 0 or 360, high sat
+			if (color.name === 'Red') {
+				if (!((detectedHSV.h < 20 || detectedHSV.h > 340) && detectedHSV.s > 25)) score -= 100;
+			}
+			// Orange: hue 20-45, high sat
+			if (color.name === 'Orange') {
+				if (!(detectedHSV.h >= 20 && detectedHSV.h <= 35 && detectedHSV.s > 25)) score -= 100;
+			}
+			// Yellow: hue 46-70, moderate sat
+			if (color.name === 'Yellow') {
+				if (!(detectedHSV.h >= 36 && detectedHSV.h <= 70 && detectedHSV.s > 15)) score -= 100;
+			}
+			// Green: hue 80-170
+			if (color.name === 'Green') {
+				if (!(detectedHSV.h >= 80 && detectedHSV.h <= 170)) score -= 50;
+			}
+			// Blue: hue 180-260
+			if (color.name === 'Blue') {
+				if (!(detectedHSV.h >= 180 && detectedHSV.h <= 260)) score -= 50;
+			}
 
 			if (score > bestScore) {
 				bestScore = score;
@@ -426,25 +474,6 @@ class CubeScanner {
 	* @returns {number}
 	*/
 	calculateColorScoreImproved(detectedRGB, detectedHSV, targetRGB, targetHSV) {
-		// Special handling for white
-		if (targetRGB.r === 255 && targetRGB.g === 255 && targetRGB.b === 255) {
-			const brightness = (detectedRGB.r + detectedRGB.g + detectedRGB.b) / 3;
-			const colorStdDev = Math.sqrt(
-				(Math.pow(detectedRGB.r - brightness, 2) +
-					Math.pow(detectedRGB.g - brightness, 2) +
-					Math.pow(detectedRGB.b - brightness, 2)) / 3
-			);
-			// Require high brightness and low stddev for white
-			if (brightness > 210 && colorStdDev < 18) return 1000;
-			return Math.max(0, brightness - 180 - colorStdDev * 2);
-		}
-
-		// Penalize orange if brightness is very high (to avoid white/orange confusion)
-		if (targetRGB.r === 255 && targetRGB.g === 140 && targetRGB.b === 0) {
-			const brightness = (detectedRGB.r + detectedRGB.g + detectedRGB.b) / 3;
-			if (brightness > 220) return 0;
-		}
-
 		const rgbDistance = Math.sqrt(
 			Math.pow(detectedRGB.r - targetRGB.r, 2) +
 			Math.pow(detectedRGB.g - targetRGB.g, 2) +
@@ -573,6 +602,7 @@ class CubeScanner {
 		});
 	}
 }
+
 
 /**
  * ====================================================================
