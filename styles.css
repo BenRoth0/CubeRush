@@ -538,25 +538,30 @@ h1 {
 
 /* Camera Scanner Styles */
 .scanner-overlay {
-	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	max-height: calc(var(--vh, 1vh) * 100); /* Just in case */
-	overflow: hidden;
-	background: rgba(0, 0, 0, 0.95);
-	display: none;
-	flex-direction: column;
-	z-index: 1001;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  max-height: calc(var(--vh, 1vh) * 100);
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Centers the video */
+  align-items: center;
+  z-index: 1001;
+  overflow: hidden;
 }
 
 .scanner-header {
-	text-align: center;
-	padding: 20px;
-	color: white;
-	background: linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%);
-	backdrop-filter: blur(10px);
+  position: absolute;
+  top: 0;
+  width: 100%;
+  padding: 20px;
+  text-align: center;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%);
+  backdrop-filter: blur(10px);
+  z-index: 10;
 }
 
 	.scanner-header h2 {
@@ -574,23 +579,22 @@ h1 {
 	}
 
 .scanner-camera-container {
-	flex: 1;
+	height: 100%;
+	width: 100%;
 	position: relative;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	padding: 20px;
-	max-height: calc(var(--vh, 1vh) * 70); /* Adjust dynamically */
 }
 
 #cameraVideo {
-	width: 100%;
-	height: 100%;
-	max-width: 100vw;
-	max-height: 100vh;
-	object-fit: cover;
-	border-radius: 15px;
-	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .scanner-grid {
@@ -627,12 +631,15 @@ h1 {
 }
 
 .scanner-footer {
-	padding: 20px;
-	background: linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%);
-	backdrop-filter: blur(10px);
-	display: flex;
-	gap: 15px;
-	justify-content: center;
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%);
+  backdrop-filter: blur(10px);
+  z-index: 10;
 }
 
 .scanner-btn {
