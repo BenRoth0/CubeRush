@@ -148,4 +148,13 @@
 	<canvas id="canvas" style="display: none;"></canvas>
 	<script src="script.js"></script>
 </body>
+<script>
+	//Viewport height fix for mobile browser chrome
+	function setVhUnit() {
+		const vh = window.innerHeight * 0.01;
+		document.documentElement.style.setProperty('--vh', `${vh}px`);
+	}
+	window.addEventListener('load', setVhUnit);
+	window.addEventListener('resize', setVhUnit);
+</script>
 </html>
